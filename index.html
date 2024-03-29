@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html>
+  <body>
+    <div
+      style="
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+      "
+    >
+      <canvas
+        id="myCanvas"
+        width="1000"
+        height="600"
+        style="border: 10px solid #d3d3d3; box-shadow: 10px 10px 5px grey"
+      >
+        Your browser does not support the HTML5 canvas tag.</canvas
+      >
+    </div>
+
+    <script>
+      var canvas = document.getElementById("myCanvas");
+      var ctx = canvas.getContext("2d");
+      var ballRadius = 10;
+      var x = canvas.width / 2;
+      var y = canvas.height - 30;
+      var dx = 3;
+      var dy = -3;
+      var score = 0;
+      var highScore = localStorage.getItem("highScore") || 0;
+      var paddleHeight = 20; // 厚一點
+      var paddleWidth = 150; // 長一點
+      var paddleX = (canvas.width - paddleWidth) / 2;
+      var blocks = [];
+      var interval;
+
+      canvas.style.background = "#FFB6C1";
+
+      function resizeCanvas() {
+        var maxWidth = 1000;
+        var maxHeight = 600;
+        var width = window.innerWidth;
+        var height = window.innerHeight;
+        var scale = Math.min(width / maxWidth, height / maxHeight);
+        canvas.width = maxWidth * scale;
+        canvas.height = maxHeight * scale;
+      }
+
+      window.addEventListener("resize", resizeCanvas, false);
+      resizeCanvas();
+
+      function createBlocks() {
+        for (var i = 0; i < 10; i++) {
+          var block = {
+            x: Math.random() * (canvas.width - 60) + 30,
+            y: Math.random() * (canvas.height - 60 - paddleHeight - 30) + 30,
+            width: 30,
+            height: 30,
+          };
+          blocks.push(block);
+        }
+      }
+
+      function drawBall() {
+        var gradient = ctx.createRadialGradient(
+          x,
+          y,
+          ballRadius,
+          x,
+          y,
+          ballRadius / 2
+        );
+        gradient.addColorStop(0, "#0095DD");
+        gradient.addColorStop(1, "white");
+        ctx.beginPath();
+        ctx.arc(x, y, ballRadius, 0, Math.PI * 2);
+        ctx.fillStyle = gradient;
+        ctx.fill();
+        ctx.closePath();
+      }
+
+      function drawPaddle() {
+        var gradient = ctx.createLinearGradient(
+          paddleX,
+          canvas.height - paddleHeight,
+          paddleX,
+          canvas.height
+        );
+        gradient.addColorStop(0, "red");
+        gradient.addColorStop(1, "white");
+        ctx.beginPath();
+        ctx.rect(
+          paddleX,
+          canvas.height - paddleHeight,
+          paddleWidth,
+          paddleHeight
+        );
+        ctx.fillStyle = gradient;
+        ctx.fill();
+        ctx.closePath();
+      }
+
+      function drawBlocks() {
+        for (var i = 0; i < blocks.length; i++) {
+          var gradient = ctx.createLinearGradient(
+            blocks[i].x,
+            blocks[i].y,
+            blocks[i].x,
+            blocks[i].y + blocks[i].height
+          );
+          gradient.addColorStop(0, "yellow");
+          gradient.addColorStop(1, "white");
+          ctx.beginPath();
+          ctx.rect(blocks[i].x, blocks[i].y, blocks[i].width, blocks[i].height);
+          ctx.fillStyle = gradient;
+          ctx.fill();
+          ctx.closePath();
+        }
+      }
+
+      function collisionDetection() {
+        for (var i = 0; i < blocks.length; i++) {
+          if (
+            x > blocks[i].x &&
+            x < blocks[i].x + blocks[i].width &&
+            y > blocks[i].y &&
+            y < blocks[i].y + blocks[i].height
+          ) {
+            blocks.splice(i, 1);
+            score++;
+            dy = -dy;
+          }
+        }
+      }
+
+      function drawScore() {
+        ctx.font = "30px Arial";
+        ctx.fillStyle = "#0095DD";
+        ctx.fillText("Score: " + score, 8, 50);
+        ctx.strokeStyle = "black";
+        ctx.lineWidth = 2;
+        ctx.strokeText("Score: " + score, 8, 50);
+      }
+
+      function drawHighScore() {
+        ctx.font = "30px Arial";
+        ctx.fillStyle = "#0095DD";
+        ctx.fillText("High Score: " + highScore, 8, 100);
+        ctx.strokeStyle = "black";
+        ctx.lineWidth = 2;
+        ctx.strokeText("High Score: " + highScore, 8, 100);
+      }
+
+      function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        drawBall();
+        drawPaddle();
+        drawBlocks();
+        drawScore();
+        drawHighScore();
+        collisionDetection();
+        if (x + dx > canvas.width - ballRadius || x + dx < ballRadius) {
+          dx = -dx;
+        }
+        if (y + dy < ballRadius) {
+          dy = -dy;
+        } else if (y + dy > canvas.height - ballRadius) {
+          if (x > paddleX && x < paddleX + paddleWidth) {
+            dy = -dy;
+          } else {
+            if (score > highScore) {
+              localStorage.setItem("highScore", score);
+            }
+            alert("遊戲結束! 您的得分是: " + score);
+            clearInterval(interval);
+            document.location.reload();
+            return;
+          }
+        }
+        x += dx;
+        y += dy;
+      }
+
+      canvas.addEventListener("mousemove", mouseMoveHandler, false);
+      canvas.addEventListener("touchmove", touchMoveHandler, false);
+
+      function mouseMoveHandler(e) {
+        var relativeX = e.clientX - canvas.offsetLeft;
+        if (relativeX > 0 && relativeX < canvas.width) {
+          paddleX = relativeX - paddleWidth / 2;
+        }
+      }
+
+      function touchMoveHandler(e) {
+        var touch = e.touches[0];
+        var relativeX = touch.clientX - canvas.offsetLeft;
+        if (relativeX > 0 && relativeX < canvas.width) {
+          paddleX = relativeX - paddleWidth / 2;
+        }
+      }
+
+      createBlocks();
+      interval = setInterval(draw, 10);
+    </script>
+  </body>
+</html>
